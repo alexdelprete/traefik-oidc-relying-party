@@ -8,21 +8,21 @@ This OIDC authentication plugin is a middleware for Go applications, which manag
 
 The plugin uses several data structures:
 
-- Config: This struct stores the configuration details of the Provider instance, such as the URL, client ID, and client secret.
-  ProviderAuth: This struct is the main component of the plugin, storing the next HTTP handler and the configuration.
-  ProviderTokenResponse: This struct stores the response from the Provider when a token is requested.
-- state: This struct stores the URL to which the user should be redirected after successful authentication.
+- **Config**: This struct stores the configuration details of the Provider instance, such as the URL, client ID, and client secret.
+- **ProviderAuth**: This struct is the main component of the plugin, storing the next HTTP handler and the configuration.
+- **ProviderTokenResponse**: This struct stores the response from the Provider when a token is requested.
+- **state**: This struct stores the URL to which the user should be redirected after successful authentication.
 
 ### Main Functions
 
 The plugin has several main functions:
 
-- CreateConfig(): Initializes and returns a new Config struct.
-- New(): Creates a new Provider authentication middleware. It checks the provided configuration and returns an error if the Provider URL or client ID is not provided.
-- ServeHTTP(): This is the main function of the middleware. It checks for an "Authorization" cookie in the request. If the cookie exists and its value starts with "Bearer ", it verifies the token. If the token is valid, it allows the request to proceed. If the token is invalid, it redirects the request to the Provider for authentication. If the cookie does not exist, it checks for an authorization code in the request URL. If the code exists, it exchanges it for a token. If the code does not exist, it redirects the request to the Provider for authentication.
-- exchangeAuthCode(): Exchanges an authorization code for a token.
-- redirectToProvider(): Redirects the request to the Provider for authentication.
-- verifyToken(): Verifies the validity of a token.
+- **CreateConfig**(): Initializes and returns a new Config struct.
+- **New**(): Creates a new Provider authentication middleware. It checks the provided configuration and returns an error if the Provider URL or client ID is not provided.
+- **ServeHTTP**(): This is the main function of the middleware. It checks for an "Authorization" cookie in the request. If the cookie exists and its value starts with "Bearer ", it verifies the token. If the token is valid, it allows the request to proceed. If the token is invalid, it redirects the request to the Provider for authentication. If the cookie does not exist, it checks for an authorization code in the request URL. If the code exists, it exchanges it for a token. If the code does not exist, it redirects the request to the Provider for authentication.
+- **exchangeAuthCode**(): Exchanges an authorization code for a token.
+- **redirectToProvider**(): Redirects the request to the Provider for authentication.
+- **verifyToken**(): Verifies the validity of a token.
 
 ## How it Works
 
@@ -56,8 +56,8 @@ http:
       plugin:
         traefik-oidc-relying-party:
           KeycloakURL: "https://my-provider-url.com"
-          ClientID: "<CLIENT_ID"
-          ClientSecret: "<CLIENT_SECRET"
+          ClientID: "<CLIENT_ID>"
+          ClientSecret: "<CLIENT_SECRET>"
 ```
 
 Alternatively, ClientID and ClientSecret can be read from a file to support Docker Secrets and Kubernetes Secrets:
