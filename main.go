@@ -3,11 +3,11 @@ package traefik_oidc_relying_party
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -95,6 +95,7 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		scheme := req.Header.Get("X-Forwarded-Proto")
 		host := req.Header.Get("X-Forwarded-Host")
 		originalURL := fmt.Sprintf("%s://%s%s", scheme, host, req.RequestURI)
+		os.Stdout.WriteString("Redirect originalURL: " + originalURL)
 
 		http.Redirect(rw, req, originalURL, http.StatusFound)
 	}
@@ -130,6 +131,7 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 
 	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
+		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 		return "", err
 	}
 
@@ -145,19 +147,22 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 		})
 
 	if err != nil {
+		os.Stderr.WriteString("Error sending AuthorizationCode in POST: " + err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", errors.New("received bad response from Provider: " + string(body))
+		os.Stderr.WriteString("Received bad HTTP response from Provider: " + string(body))
+		return "", err
 	}
 
 	var tokenResponse ProviderTokenResponse
 	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
 	if err != nil {
-		panic(err)
+		os.Stderr.WriteString("Error decoding ProviderTokenResponse: " + err.Error())
+		return "", err
 	}
 
 	return tokenResponse.AccessToken, nil
@@ -177,15 +182,17 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 
 	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
-		panic(err)
+		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 	}
 
 	AuthorizationEndpoint := discoverydoc.AuthorizationEndpoint
+	os.Stderr.WriteString("AuthorizationEndPoint: " + AuthorizationEndpoint)
 
 	redirectURL, err := url.Parse(AuthorizationEndpoint)
 	if err != nil {
-		panic(err)
+		os.Stderr.WriteString("Error parsing AuthorizationEndpoint: " + err.Error())
 	}
+
 	redirectURL.RawQuery = url.Values{
 		"response_type": {"code"},
 		"scope":         {"openid profile email"},
@@ -206,7 +213,7 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 
 	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
-		panic(err)
+		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 	}
 
 	IntrospectionEndpoint := discoverydoc.IntrospectionEndpoint
@@ -225,17 +232,20 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
+		os.Stderr.WriteString("Error after http request: " + err.Error())
 		return false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		os.Stderr.WriteString("Unexpected status code in http response: " + err.Error())
 		return false, nil
 	}
 
 	var introspectResponse map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&introspectResponse)
 	if err != nil {
+		os.Stderr.WriteString("Error decoding response: " + err.Error())
 		return false, err
 	}
 
