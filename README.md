@@ -43,7 +43,7 @@ experimental:
   plugins:
     traefik-oidc-relying-party:
       moduleName: "github.com/alexdelprete/traefik-oidc-relying-party"
-      version: "v1.0"
+      version: "v1.0.0"
 ```
 
 Usage
