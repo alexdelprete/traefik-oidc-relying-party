@@ -1,4 +1,4 @@
-package discovery
+package traefik_oidc_relying_party
 
 import (
 	"bytes"

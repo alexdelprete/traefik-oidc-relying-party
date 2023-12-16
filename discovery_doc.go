@@ -1,4 +1,4 @@
-package discovery
+package traefik_oidc_relying_party
 
 type Endpoints struct {
 	BackchannelAuthenticationEndpoint  string `json:"backchannel_authentication_endpoint"`

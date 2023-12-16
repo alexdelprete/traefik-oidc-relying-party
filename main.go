@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/vexxhost/oidc-utils/pkg/discovery"
 )
 
 func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -129,7 +127,7 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 		return "", err
 	}
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
+	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
 		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 		return "", err
@@ -180,7 +178,7 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	stateBytes, _ := json.Marshal(state)
 	stateBase64 := base64.StdEncoding.EncodeToString(stateBytes)
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
+	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
 		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 	}
@@ -211,7 +209,7 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 		"token": {token},
 	}
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
+	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
 	if err != nil {
 		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
 	}
