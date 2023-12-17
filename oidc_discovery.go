@@ -107,10 +107,10 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
 	resp, err := http.Get(wellKnown)
 	if err != nil {
-		log("🐸  (oidc_discovery) Error http-getting discovery endpoints - Err: %s", err.Error())
+		log("🐸  (oidc_discovery) Error http-getting discovery endpoints - URL: %s - Err: %s", wellKnown, err.Error())
 		return nil, err
 	} else {
-		log("🐸  (oidc_discovery) OK http-getting discovery endpoints: %s", wellKnown)
+		log("🐸  (oidc_discovery) OK http-getting discovery endpoints - URL: %s", wellKnown)
 	}
 	defer resp.Body.Close()
 
