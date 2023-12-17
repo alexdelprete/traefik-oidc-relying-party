@@ -15,11 +15,10 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	cookie, err := req.Cookie("Authorization")
 	if err == nil && strings.HasPrefix(cookie.Value, "Bearer ") {
 		token := strings.TrimPrefix(cookie.Value, "Bearer ")
-		fmt.Printf("token = %+v\n", token)
-
 		ok, err := k.verifyToken(token)
-		fmt.Printf("ok = %+v\n", ok)
+		log("(main) Token verified: %+v", token)
 		if err != nil {
+			log("(main) Error verifying token: %s", err.Error())
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -48,28 +47,32 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		user, err := extractClaims(token, k.UserClaimName)
 		if err == nil {
 			req.Header.Set(k.UserHeaderName, user)
+			log("(main) Extracted claims: %s", k.UserClaimName)
+		} else {
+			log("(main) Error extracting claims: %s", err.Error())
 		}
 		k.next.ServeHTTP(rw, req)
 	} else {
 		authCode := req.URL.Query().Get("code")
 		if authCode == "" {
-			fmt.Printf("code is missing, redirect to Provider\n")
+			log("(main) Code is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
 		stateBase64 := req.URL.Query().Get("state")
 		if stateBase64 == "" {
-			fmt.Printf("state is missing, redirect to Provider\n")
+			log("(main) State is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
-		fmt.Printf("exchange auth code called\n")
+		log("(main) exchange auth code called")
 		token, err := k.exchangeAuthCode(req, authCode, stateBase64)
-		fmt.Printf("exchange auth code finished %+v\n", token)
+		log("(main) Exchange Auth Code completed: %+v", token)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			log("(main) Error Exchange Auth Code: %s", err.Error())
 			return
 		}
 
@@ -101,6 +104,7 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func extractClaims(tokenString string, claimName string) (string, error) {
 	jwtContent := strings.Split(tokenString, ".")
 	if len(jwtContent) < 3 {
+		log("(main) JWT token malformed: %+v", jwtContent)
 		return "", fmt.Errorf("malformed jwt")
 	}
 
