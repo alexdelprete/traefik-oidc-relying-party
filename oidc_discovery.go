@@ -116,10 +116,10 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("(oidc_discovery) Error getting OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
+		log("(oidc_discovery) Error http-getting (statuscode) OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
 		return nil, err
 	} else {
-		log("(oidc_discovery) OK http-getting discovery endpoints: %s", wellKnown)
+		log("(oidc_discovery) OK http-getting (statuscode) discovery endpoints: %s", wellKnown)
 	}
 
 	document := OIDCDiscovery{

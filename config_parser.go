@@ -141,12 +141,12 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 	}
 
 	discoverydoc, err := GetOIDCDiscovery(config.ProviderURL)
-	if err != nil {
-		log("(config_parser) Error retrieving Discovery Document: %s", err.Error())
-		return nil, err
-	} else {
-		log("(config_parser) Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
-	}
+	// if err != nil {
+	// 	log("(config_parser) Error retrieving Discovery Document: %s", err.Error())
+	// 	return nil, err
+	// } else {
+	// 	log("(config_parser) Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
+	// }
 
 	userClaimName := "preferred_username"
 	if config.UserClaimName != "" {
