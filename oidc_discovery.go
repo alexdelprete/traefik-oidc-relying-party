@@ -93,6 +93,11 @@ type OIDCDiscovery struct {
 
 // GetOIDCDiscovery retrieves OIDC discovery endpoints from the given OpenID provider
 func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
+	if len(providerURL) <= 0 {
+		log("(oidc_discovery) providerURL empty: %s", providerURL)
+	} else {
+		log("(oidc_discovery) providerURL valid: %s", providerURL)
+	}
 	requestUrl, err := url.Parse(providerURL)
 	if err != nil {
 		log("(oidc_discovery) Error parsing providerURL: %s", providerURL)
