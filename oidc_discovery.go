@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
 )
@@ -111,7 +110,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		os.Stderr.WriteString("failed to retrieve OIDC discovery endpoints. Status code: " + strconv.FormatInt(int64(resp.StatusCode), 10))
+		log("🐸  failed to retrieve OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
 		return nil, err
 	}
 

@@ -11,12 +11,11 @@ import (
 )
 
 type Config struct {
-	ProviderURL    string `json:"url"`
-	ClientID       string `json:"client_id"`
-	ClientSecret   string `json:"client_secret"`
-	UserClaimName  string `json:"user_claim_name"`
-	UserHeaderName string `json:"user_header_name"`
-
+	ProviderURL      string `json:"url"`
+	ClientID         string `json:"client_id"`
+	ClientSecret     string `json:"client_secret"`
+	UserClaimName    string `json:"user_claim_name"`
+	UserHeaderName   string `json:"user_header_name"`
 	ClientIDFile     string `json:"client_id_file"`
 	ClientSecretFile string `json:"client_secret_file"`
 	ProviderURLEnv   string `json:"url_env"`
@@ -43,6 +42,12 @@ type ProviderTokenResponse struct {
 
 type state struct {
 	RedirectURL string `json:"redirect_url"`
+}
+
+// log is used for logging output, with a usage similar to Sprintf,
+// but it already includes a newline character at the end.
+func log(format string, a ...interface{}) {
+	os.Stdout.WriteString("[traefik-oidc-rp] " + fmt.Sprintf(format, a...) + "\n")
 }
 
 func CreateConfig() *Config {
@@ -116,6 +121,7 @@ func readConfigEnv(config *Config) error {
 }
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
+	log("☃️  Config loaded.(%d) %v", len(config.ProviderURL), config)
 	err := readSecretFiles(config)
 	if err != nil {
 		return nil, err
@@ -132,8 +138,10 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 
 	discoverydoc, err := GetOIDCDiscovery(config.ProviderURL)
 	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
+		log("🐸  Error retrieving Discovery Document: %s", err.Error())
 		return nil, err
+	} else {
+		log("🐸  Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
 	}
 
 	userClaimName := "preferred_username"
