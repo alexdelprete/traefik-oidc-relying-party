@@ -92,7 +92,7 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		scheme := req.Header.Get("X-Forwarded-Proto")
 		host := req.Header.Get("X-Forwarded-Host")
 		originalURL := fmt.Sprintf("%s://%s%s", scheme, host, req.RequestURI)
-		log("🐸 Redirect originalURL: %s", originalURL)
+		log("(main) Redirect originalURL: %s", originalURL)
 
 		http.Redirect(rw, req, originalURL, http.StatusFound)
 	}
@@ -125,7 +125,7 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 	if err != nil {
 		return "", err
 	}
-	log("🐸  TokenEndPoint: %s", k.DiscoveryDoc.TokenEndpoint)
+	log("(main) TokenEndPoint: %s", k.DiscoveryDoc.TokenEndpoint)
 
 	resp, err := http.PostForm(k.DiscoveryDoc.TokenEndpoint,
 		url.Values{
@@ -137,21 +137,21 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 		})
 
 	if err != nil {
-		log("🐸  Error sending AuthorizationCode in POST: %s", err.Error())
+		log("(main) Error sending AuthorizationCode in POST: %s", err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		log("🐸  Received bad HTTP response from Provider: %s", string(body))
+		log("(main) Received bad HTTP response from Provider: %s", string(body))
 		return "", err
 	}
 
 	var tokenResponse ProviderTokenResponse
 	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
 	if err != nil {
-		log("🐸  Error decoding ProviderTokenResponse: %s", err.Error())
+		log("(main) Error decoding ProviderTokenResponse: %s", err.Error())
 		return "", err
 	}
 
@@ -170,11 +170,11 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	stateBytes, _ := json.Marshal(state)
 	stateBase64 := base64.StdEncoding.EncodeToString(stateBytes)
 
-	log("🐸  AuthorizationEndPoint: %s", k.DiscoveryDoc.AuthorizationEndpoint)
+	log("(main) AuthorizationEndPoint: %s", k.DiscoveryDoc.AuthorizationEndpoint)
 
 	redirectURL, err := url.Parse(k.DiscoveryDoc.AuthorizationEndpoint)
 	if err != nil {
-		log("🐸  Error parsing AuthorizationEndpoint: %s", err.Error())
+		log("(main) Error parsing AuthorizationEndpoint: %s", err.Error())
 	}
 
 	redirectURL.RawQuery = url.Values{
@@ -195,7 +195,7 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 		"token": {token},
 	}
 
-	log("🐸  IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
+	log("(main) IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -212,10 +212,10 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log("🐸  Error after Introspection http request: %s", err.Error())
+		log("(main) Error after Introspection http request: %s", err.Error())
 		return false, err
 	} else {
-		log("🐸  Introspection http request OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
+		log("(main) Introspection http request OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 	}
 	defer resp.Body.Close()
 
@@ -223,10 +223,10 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 	err = json.NewDecoder(resp.Body).Decode(&introspectResponse)
 
 	if err != nil {
-		log("🐸  Error decoding response: %s", err.Error())
+		log("(main) Error decoding response: %s", err.Error())
 		return false, err
 	} else {
-		log("🐸  Response decoding OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
+		log("(main) Response decoding OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 	}
 
 	return introspectResponse["active"].(bool), nil

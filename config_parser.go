@@ -125,7 +125,7 @@ func readConfigEnv(config *Config) error {
 }
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	log("Config loaded.(%d) %v", len(config.ProviderURL), config)
+	log("(config_parser) Config loaded.(%d) %v", len(config.ProviderURL), config)
 	err := readSecretFiles(config)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 		log("(config_parser) Error retrieving Discovery Document: %s", err.Error())
 		return nil, err
 	} else {
-		log("Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
+		log("(config_parser) Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
 	}
 
 	userClaimName := "preferred_username"
