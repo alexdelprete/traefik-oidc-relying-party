@@ -138,7 +138,7 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 
 	discoverydoc, err := GetOIDCDiscovery(config.ProviderURL)
 	if err != nil {
-		log("🐸  Error retrieving Discovery Document: %s", err.Error())
+		log("🐸  (config_parser) Error retrieving Discovery Document: %s", err.Error())
 		return nil, err
 	} else {
 		log("🐸  Discovery OK - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
