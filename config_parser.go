@@ -51,7 +51,7 @@ func log(format string, a ...interface{}) {
 	// Get the current date and time
 	currentTime := time.Now().Format("2006-01-02 15:04:05")
 	// Print the current date and time with a custom format using fmt.Printf
-	os.Stdout.WriteString(currentTime + "[traefik-oidc-rp] " + fmt.Sprintf(format, a...) + "\n")
+	os.Stdout.WriteString(currentTime + " [traefik-oidc-rp] " + fmt.Sprintf(format, a...) + "\n")
 }
 
 func CreateConfig() *Config {
