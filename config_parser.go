@@ -27,6 +27,7 @@ type Config struct {
 type ProviderAuth struct {
 	next           http.Handler
 	ProviderURL    *url.URL
+	DiscoveryDoc   *OIDCDiscovery
 	ClientID       string
 	ClientSecret   string
 	UserClaimName  string
@@ -129,6 +130,12 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 		return nil, err
 	}
 
+	discoverydoc, err := GetOIDCDiscovery(config.ProviderURL)
+	if err != nil {
+		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
+		return nil, err
+	}
+
 	userClaimName := "preferred_username"
 	if config.UserClaimName != "" {
 		userClaimName = config.UserClaimName
@@ -142,6 +149,7 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 	return &ProviderAuth{
 		next:           next,
 		ProviderURL:    parsedURL,
+		DiscoveryDoc:   discoverydoc,
 		ClientID:       config.ClientID,
 		ClientSecret:   config.ClientSecret,
 		UserClaimName:  userClaimName,

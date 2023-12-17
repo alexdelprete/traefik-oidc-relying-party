@@ -127,15 +127,9 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 		return "", err
 	}
 
-	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-		return "", err
-	}
+	os.Stderr.WriteString("AuthorizationEndPoint: " + k.DiscoveryDoc.TokenEndpoint)
 
-	TokenEndpoint := discoverydoc.TokenEndpoint
-
-	resp, err := http.PostForm(TokenEndpoint,
+	resp, err := http.PostForm(k.DiscoveryDoc.TokenEndpoint,
 		url.Values{
 			"grant_type":    {"authorization_code"},
 			"client_id":     {k.ClientID},
@@ -178,15 +172,9 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	stateBytes, _ := json.Marshal(state)
 	stateBase64 := base64.StdEncoding.EncodeToString(stateBytes)
 
-	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-	}
+	os.Stderr.WriteString("AuthorizationEndPoint: " + k.DiscoveryDoc.AuthorizationEndpoint)
 
-	AuthorizationEndpoint := discoverydoc.AuthorizationEndpoint
-	os.Stderr.WriteString("AuthorizationEndPoint: " + AuthorizationEndpoint)
-
-	redirectURL, err := url.Parse(AuthorizationEndpoint)
+	redirectURL, err := url.Parse(k.DiscoveryDoc.AuthorizationEndpoint)
 	if err != nil {
 		os.Stderr.WriteString("Error parsing AuthorizationEndpoint: " + err.Error())
 	}
@@ -209,16 +197,11 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 		"token": {token},
 	}
 
-	discoverydoc, err := DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-	}
-
-	IntrospectionEndpoint := discoverydoc.IntrospectionEndpoint
+	os.Stderr.WriteString("AuthorizationEndPoint: " + k.DiscoveryDoc.IntrospectionEndpoint)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
-		IntrospectionEndpoint,
+		k.DiscoveryDoc.IntrospectionEndpoint,
 		strings.NewReader(data.Encode()),
 	)
 	if err != nil {
