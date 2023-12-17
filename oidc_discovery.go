@@ -95,10 +95,10 @@ type OIDCDiscovery struct {
 func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	requestUrl, err := url.Parse(providerURL)
 	if err != nil {
-		log("🐸  (oidc_discovery) Error parsing providerURL: %s", providerURL)
+		log("(oidc_discovery) Error parsing providerURL: %s", providerURL)
 		return nil, err
 	} else {
-		log("🐸  (oidc_discovery) OK Parsed providerURL: %s", providerURL)
+		log("(oidc_discovery) OK Parsed providerURL: %s", providerURL)
 	}
 
 	requestUrl.Path = path.Join(requestUrl.Path, ".well-known/openid-configuration")
@@ -107,19 +107,19 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
 	resp, err := http.Get(wellKnown)
 	if err != nil {
-		log("🐸  (oidc_discovery) Error http-getting discovery endpoints - StatusCode: %s - Err: %s", strconv.FormatInt(int64(resp.StatusCode), 10), err.Error())
+		log("(oidc_discovery) Error http-getting discovery endpoints - StatusCode: %s - Err: %s", strconv.FormatInt(int64(resp.StatusCode), 10), err.Error())
 		return nil, err
 	} else {
-		log("🐸  (oidc_discovery) OK http-getting discovery endpoints - URL: %s", wellKnown)
+		log("(oidc_discovery) OK http-getting discovery endpoints - URL: %s", wellKnown)
 	}
 	defer resp.Body.Close()
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("🐸  (oidc_discovery) Error getting OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
+		log("(oidc_discovery) Error getting OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
 		return nil, err
 	} else {
-		log("🐸  (oidc_discovery) OK http-getting discovery endpoints: %s", wellKnown)
+		log("(oidc_discovery) OK http-getting discovery endpoints: %s", wellKnown)
 	}
 
 	document := OIDCDiscovery{
@@ -130,10 +130,10 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	err = json.NewDecoder(resp.Body).Decode(&document)
 
 	if err != nil {
-		log("🐸  (oidc_discovery) Error json-decoding OIDC discovery endpoints. Status code: %s", err.Error())
+		log("(oidc_discovery) Error json-decoding OIDC discovery endpoints. Status code: %s", err.Error())
 		return nil, err
 	} else {
-		log("🐸  (oidc_discovery) OK json-decoding OIDC discovery endpoints.")
+		log("(oidc_discovery) OK json-decoding OIDC discovery endpoints.")
 	}
 	return &document, nil
 }
