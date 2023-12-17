@@ -104,7 +104,7 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func extractClaims(tokenString string, claimName string) (string, error) {
 	jwtContent := strings.Split(tokenString, ".")
 	if len(jwtContent) < 3 {
-		log("(main) JWT token malformed: %+v", jwtContent)
+		log("(main) JWT token malformed: Len (%d) Content %+v", len(jwtContent), jwtContent)
 		return "", fmt.Errorf("malformed jwt")
 	}
 
