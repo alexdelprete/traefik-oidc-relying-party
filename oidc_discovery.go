@@ -95,6 +95,7 @@ type OIDCDiscovery struct {
 func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	if len(providerURL) <= 0 {
 		log("(oidc_discovery) providerURL empty: %s", providerURL)
+		return nil, nil
 	} else {
 		log("(oidc_discovery) providerURL valid: %s", providerURL)
 	}
