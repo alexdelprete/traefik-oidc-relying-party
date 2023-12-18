@@ -126,8 +126,8 @@ func readConfigEnv(config *Config) error {
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	log("(config_parser) [INFO] Config loaded. Len: %d ProviderURL: %v", len(config.ProviderURL), config.ProviderURL)
-	log("(config_parser) [INFO] Sleeping for 30s because Traefik's not ready...")
-	time.Sleep(30 * time.Second)
+	log("(config_parser) [INFO] Sleeping for 60s because Traefik's not ready...")
+	time.Sleep(60 * time.Second)
 	log("(config_parser) [INFO] Woke up.")
 	err := readSecretFiles(config)
 	if err != nil {

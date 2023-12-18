@@ -3,6 +3,7 @@ package traefik_oidc_relying_party
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"path"
@@ -96,14 +97,14 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	if len(providerURL) <= 0 {
 		log("(oidc_discovery) [ERROR] providerURL empty: %s", providerURL)
-		return &document, nil
+		return &document, errors.New("[ERROR] providerURL empty")
 	} else {
 		log("(oidc_discovery) [OK] providerURL valid: %s", providerURL)
 	}
 	requestUrl, err := url.Parse(providerURL)
 	if err != nil {
 		log("(oidc_discovery) [ERROR] parsing providerURL: %s", providerURL)
-		return &document, err
+		return &document, errors.New("[ERROR] parsing providerURL")
 	} else {
 		log("(oidc_discovery) [OK] Parsed providerURL: %s", providerURL)
 	}
@@ -112,7 +113,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	wellKnownURL := requestUrl.String()
 	if len(wellKnownURL) <= 0 {
 		log("(oidc_discovery) [ERROR] Creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
-		return &document, err
+		return &document, errors.New("[ERROR] Creating Discovery URL from providerURL")
 	} else {
 		log("(oidc_discovery) [OK] Creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
 	}
@@ -130,7 +131,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	resp, err := client.Get(wellKnownURL)
 	if err != nil {
 		log("(oidc_discovery) [ERROR] http-get discovery endpoints - Err: %s", err.Error())
-		return &document, err
+		return &document, errors.New("HTTP GET error")
 	} else {
 		log("(oidc_discovery) [OK] http-get discovery endpoints - URL: %s", wellKnownURL)
 	}
@@ -139,7 +140,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
 		log("(oidc_discovery) [ERROR] http-get (statuscode >= 300) OIDC discovery endpoints.")
-		return &document, err
+		return &document, errors.New("HTTP status code error")
 	} else {
 		log("(oidc_discovery) [OK] http-get (statuscode) discovery endpoints: %s", wellKnownURL)
 	}
@@ -149,7 +150,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	if err != nil {
 		log("(oidc_discovery) [ERROR] json-decoding OIDC discovery endpoints. Status code: %s", err.Error())
-		return &document, err
+		return &document, errors.New("HTTP response: JSON decoding error")
 	} else {
 		log("(oidc_discovery) [OK] json-decoding OIDC discovery endpoints.")
 	}
