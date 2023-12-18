@@ -1,10 +1,12 @@
 package traefik_oidc_relying_party
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 )
 
 type Endpoints struct {
@@ -115,8 +117,17 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 		log("(oidc_discovery) [OK] Creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
 	}
 
+	// create an http client with configurable options
+	// needed to skip certificate verification
+	tr := &http.Transport{
+		MaxIdleConns:    10,
+		IdleConnTimeout: 30 * time.Second,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
-	resp, err := http.Get(wellKnownURL)
+	resp, err := client.Get(wellKnownURL)
 	if err != nil {
 		log("(oidc_discovery) [ERROR] http-get discovery endpoints - Err: %s", err.Error())
 		return &document, err
