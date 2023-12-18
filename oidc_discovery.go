@@ -110,11 +110,11 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	requestUrl.Path = path.Join(requestUrl.Path, ".well-known/openid-configuration")
 	wellKnownURL := requestUrl.String()
-	if len(wellKnownURL) > 0 {
-		log("(oidc_discovery) Error creating Discovery URL from providerURL: %s", providerURL)
+	if len(wellKnownURL) <= 0 {
+		log("(oidc_discovery) Error creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
 		return &document, err
 	} else {
-		log("(oidc_discovery) OK creating Discovery URL from providerURL - wellKnownURL: %s", wellKnownURL)
+		log("(oidc_discovery) OK creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
 	}
 
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
