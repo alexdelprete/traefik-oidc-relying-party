@@ -125,7 +125,7 @@ func readConfigEnv(config *Config) error {
 }
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	log("(config_parser) Config loaded. Len: %d Config: %v", len(config.ProviderURL), config)
+	log("(config_parser) [OK] Config loaded. Len: %d ProviderURL: %v", len(config.ProviderURL), config.ProviderURL)
 	err := readSecretFiles(config)
 	if err != nil {
 		return nil, err
