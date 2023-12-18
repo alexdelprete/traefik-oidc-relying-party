@@ -230,7 +230,7 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 		log("(main) Error decoding response: %s", err.Error())
 		return false, err
 	} else {
-		log("(main) Response decoding OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
+		log("(main) Response decoding OK - IntrospectResponse: %+v", introspectResponse)
 	}
 
 	return introspectResponse["active"].(bool), nil
