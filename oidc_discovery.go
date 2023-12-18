@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 )
 
 type Endpoints struct {
@@ -93,43 +92,47 @@ type OIDCDiscovery struct {
 
 // GetOIDCDiscovery retrieves OIDC discovery endpoints from the given OpenID provider
 func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
+	document := OIDCDiscovery{}
+
 	if len(providerURL) <= 0 {
 		log("(oidc_discovery) providerURL empty: %s", providerURL)
-		return nil, nil
+		return &document, nil
 	} else {
 		log("(oidc_discovery) providerURL valid: %s", providerURL)
 	}
 	requestUrl, err := url.Parse(providerURL)
 	if err != nil {
 		log("(oidc_discovery) Error parsing providerURL: %s", providerURL)
-		return nil, err
+		return &document, err
 	} else {
 		log("(oidc_discovery) OK Parsed providerURL: %s", providerURL)
 	}
 
 	requestUrl.Path = path.Join(requestUrl.Path, ".well-known/openid-configuration")
-	wellKnown := requestUrl.String()
+	wellKnownURL := requestUrl.String()
+	if len(wellKnownURL) > 0 {
+		log("(oidc_discovery) Error creating Discovery URL from providerURL: %s", providerURL)
+		return &document, err
+	} else {
+		log("(oidc_discovery) OK creating Discovery URL from providerURL - wellKnownURL: %s", wellKnownURL)
+	}
 
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
-	resp, err := http.Get(wellKnown)
+	resp, err := http.Get(wellKnownURL)
 	if err != nil {
-		log("(oidc_discovery) Error http-getting discovery endpoints - StatusCode: %s - Err: %s", strconv.FormatInt(int64(resp.StatusCode), 10), err.Error())
-		return nil, err
+		log("(oidc_discovery) Error http-get discovery endpoints - StatusCode: %d - Err: %s", resp.StatusCode, err.Error())
+		return &document, err
 	} else {
-		log("(oidc_discovery) OK http-getting discovery endpoints - URL: %s", wellKnown)
+		log("(oidc_discovery) OK http-get discovery endpoints - URL: %s", wellKnownURL)
 	}
 	defer resp.Body.Close()
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("(oidc_discovery) Error http-getting (statuscode) OIDC discovery endpoints. Status code: %s", strconv.FormatInt(int64(resp.StatusCode), 10))
-		return nil, err
+		log("(oidc_discovery) Error http-get (statuscode) OIDC discovery endpoints. Status code: %d", resp.StatusCode)
+		return &document, err
 	} else {
-		log("(oidc_discovery) OK http-getting (statuscode) discovery endpoints: %s", wellKnown)
-	}
-
-	document := OIDCDiscovery{
-		// RawData: string(io.ReadAll(resp.Body)),
+		log("(oidc_discovery) OK http-get (statuscode) discovery endpoints: %s", wellKnownURL)
 	}
 
 	// Decode the JSON response into the OIDCDiscovery struct
@@ -137,7 +140,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	if err != nil {
 		log("(oidc_discovery) Error json-decoding OIDC discovery endpoints. Status code: %s", err.Error())
-		return nil, err
+		return &document, err
 	} else {
 		log("(oidc_discovery) OK json-decoding OIDC discovery endpoints.")
 	}
