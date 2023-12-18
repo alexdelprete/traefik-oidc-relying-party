@@ -139,7 +139,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("(oidc_discovery) [ERROR] http-get (statuscode >= 300) OIDC discovery endpoints.")
+		log("(oidc_discovery) [ERROR] http-get OIDC discovery endpoints - http status code: %s", resp.Status)
 		return &document, errors.New("HTTP error - Status code: " + resp.Status)
 	} else {
 		log("(oidc_discovery) [OK] http-get (statuscode) discovery endpoints: %s", wellKnownURL)
