@@ -120,6 +120,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	if err != nil {
 		log("(oidc_discovery) [INFO] before http-get discovery")
 		log("(oidc_discovery) [ERROR] http-get discovery endpoints - StatusCode: %d - Err: %s", resp.StatusCode, err.Error())
+		log("(oidc_discovery) [INFO] before2 http-get discovery")
 		return &document, err
 	} else {
 		log("(oidc_discovery) [INFO] after http-get discovery")
