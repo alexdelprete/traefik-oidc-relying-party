@@ -7,26 +7,22 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
-
-	"github.com/vexxhost/oidc-utils/pkg/discovery"
 )
 
 func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	cookie, err := req.Cookie("Authorization")
 	if err == nil && strings.HasPrefix(cookie.Value, "Bearer ") {
 		token := strings.TrimPrefix(cookie.Value, "Bearer ")
-		fmt.Printf("token = %+v\n", token)
-
-		ok, err := k.verifyToken(token)
-		fmt.Printf("ok = %+v\n", ok)
+		ok, userClaimName, err := k.verifyToken(token)
 		if err != nil {
+			log("(main) [ERROR] Verifying token: %s", err.Error())
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
+		} else {
+			log("(main) [OK] Token verified: %+v", token)
 		}
-
 		if !ok {
 			qry := req.URL.Query()
 			qry.Del("code")
@@ -48,31 +44,35 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			k.redirectToProvider(rw, req)
 			return
 		}
-		user, err := extractClaims(token, k.UserClaimName)
-		if err == nil {
-			req.Header.Set(k.UserHeaderName, user)
+		// set header "X-Forwarded-User" to claim "preferred_username"
+		// both header and claim to be used are configurable
+		if len(userClaimName) > 0 {
+			req.Header.Set(k.UserHeaderName, userClaimName)
+			log("(main) [OK] Set http UserHeader: %s to UserClaimName: %s with UserClaimValue: %s", k.UserHeaderName, k.UserClaimName, userClaimName)
+		} else {
+			log("(main) [ERROR] Claim value not extracted: %s", err.Error())
 		}
 		k.next.ServeHTTP(rw, req)
 	} else {
 		authCode := req.URL.Query().Get("code")
 		if authCode == "" {
-			fmt.Printf("code is missing, redirect to Provider\n")
+			log("(main) [WARN] Code is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
 		stateBase64 := req.URL.Query().Get("state")
 		if stateBase64 == "" {
-			fmt.Printf("state is missing, redirect to Provider\n")
+			log("(main) [WARN] State is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
-		fmt.Printf("exchange auth code called\n")
 		token, err := k.exchangeAuthCode(req, authCode, stateBase64)
-		fmt.Printf("exchange auth code finished %+v\n", token)
+		log("(main) [INFO] Exchange Auth Code completed: %+v", token)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			log("(main) [ERROR] Exchange Auth Code: %s", err.Error())
 			return
 		}
 
@@ -95,30 +95,10 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		scheme := req.Header.Get("X-Forwarded-Proto")
 		host := req.Header.Get("X-Forwarded-Host")
 		originalURL := fmt.Sprintf("%s://%s%s", scheme, host, req.RequestURI)
-		os.Stdout.WriteString("Redirect originalURL: " + originalURL)
+		log("(main) [INFO] Redirect originalURL: %s", originalURL)
 
 		http.Redirect(rw, req, originalURL, http.StatusFound)
 	}
-}
-
-func extractClaims(tokenString string, claimName string) (string, error) {
-	jwtContent := strings.Split(tokenString, ".")
-	if len(jwtContent) < 3 {
-		return "", fmt.Errorf("malformed jwt")
-	}
-
-	var jwtClaims map[string]interface{}
-	decoder := base64.StdEncoding.WithPadding(base64.NoPadding)
-
-	jwt_bytes, _ := decoder.DecodeString(jwtContent[1])
-	if err := json.Unmarshal(jwt_bytes, &jwtClaims); err != nil {
-		return "", err
-	}
-
-	if claimValue, ok := jwtClaims[claimName]; ok {
-		return fmt.Sprintf("%v", claimValue), nil
-	}
-	return "", fmt.Errorf("missing claim %s", claimName)
 }
 
 func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stateBase64 string) (string, error) {
@@ -128,16 +108,9 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 	if err != nil {
 		return "", err
 	}
+	log("(main) [INFO] TokenEndPoint: %s", k.DiscoveryDoc.TokenEndpoint)
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-		return "", err
-	}
-
-	TokenEndpoint := discoverydoc.TokenEndpoint
-
-	resp, err := http.PostForm(TokenEndpoint,
+	resp, err := http.PostForm(k.DiscoveryDoc.TokenEndpoint,
 		url.Values{
 			"grant_type":    {"authorization_code"},
 			"client_id":     {k.ClientID},
@@ -147,21 +120,21 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 		})
 
 	if err != nil {
-		os.Stderr.WriteString("Error sending AuthorizationCode in POST: " + err.Error())
+		log("(main) [ERROR] Sending AuthorizationCode in POST: %s", err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		os.Stderr.WriteString("Received bad HTTP response from Provider: " + string(body))
+		log("(main) [ERROR] Received bad HTTP response from Provider: %s", string(body))
 		return "", err
 	}
 
 	var tokenResponse ProviderTokenResponse
 	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
 	if err != nil {
-		os.Stderr.WriteString("Error decoding ProviderTokenResponse: " + err.Error())
+		log("(main) [ERROR] Decoding ProviderTokenResponse: %s", err.Error())
 		return "", err
 	}
 
@@ -180,17 +153,11 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	stateBytes, _ := json.Marshal(state)
 	stateBase64 := base64.StdEncoding.EncodeToString(stateBytes)
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-	}
+	log("(main) [INFO] AuthorizationEndPoint: %s", k.DiscoveryDoc.AuthorizationEndpoint)
 
-	AuthorizationEndpoint := discoverydoc.AuthorizationEndpoint
-	os.Stderr.WriteString("AuthorizationEndPoint: " + AuthorizationEndpoint)
-
-	redirectURL, err := url.Parse(AuthorizationEndpoint)
+	redirectURL, err := url.Parse(k.DiscoveryDoc.AuthorizationEndpoint)
 	if err != nil {
-		os.Stderr.WriteString("Error parsing AuthorizationEndpoint: " + err.Error())
+		log("(main) [ERROR] Parsing AuthorizationEndpoint: %s", err.Error())
 	}
 
 	redirectURL.RawQuery = url.Values{
@@ -204,27 +171,23 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	http.Redirect(rw, req, redirectURL.String(), http.StatusFound)
 }
 
-func (k *ProviderAuth) verifyToken(token string) (bool, error) {
+func (k *ProviderAuth) verifyToken(token string) (bool, string, error) {
 	client := &http.Client{}
 
 	data := url.Values{
 		"token": {token},
 	}
 
-	discoverydoc, err := discovery.DocumentFromIssuer(k.ProviderURL.String())
-	if err != nil {
-		os.Stderr.WriteString("Error retrieving Discovery Document: " + err.Error())
-	}
-
-	IntrospectionEndpoint := discoverydoc.IntrospectionEndpoint
+	log("(main) [INFO] IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
-		IntrospectionEndpoint,
+		k.DiscoveryDoc.IntrospectionEndpoint,
 		strings.NewReader(data.Encode()),
 	)
+
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -232,22 +195,23 @@ func (k *ProviderAuth) verifyToken(token string) (bool, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		os.Stderr.WriteString("Error after http request: " + err.Error())
-		return false, err
+		log("(main) [ERROR] After Introspection http request: %s", err.Error())
+		return false, "", err
+	} else {
+		log("(main) [OK] Introspection http request OK - IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		os.Stderr.WriteString("Unexpected status code in http response: " + err.Error())
-		return false, nil
-	}
-
 	var introspectResponse map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&introspectResponse)
-	if err != nil {
-		os.Stderr.WriteString("Error decoding response: " + err.Error())
-		return false, err
-	}
 
-	return introspectResponse["active"].(bool), nil
+	if err != nil {
+		log("(main) [ERROR] decoding response: %s", err.Error())
+		return false, "", err
+	} else {
+		log("(main) [OK] Response decoding OK - IntrospectResponse: %+v", introspectResponse)
+	}
+	// log("(main) [INFO] IntrospectResponse check return values - introspectResponse[active]: %s - introspectResponse[UserClaimName]: %s", introspectResponse["active"].(string), introspectResponse[k.UserClaimName])
+	log("(main) [INFO] IntrospectResponse check return values")
+	return introspectResponse["active"].(bool), introspectResponse[k.UserClaimName].(string), nil
 }

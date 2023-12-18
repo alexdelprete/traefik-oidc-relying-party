@@ -1,17 +1,32 @@
-package discovery
+package traefik_oidc_relying_party
+
+import (
+	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+	"path"
+	"time"
+)
 
 type Endpoints struct {
+	AuthorizationEndpoint              string `json:"authorization_endpoint"`
 	BackchannelAuthenticationEndpoint  string `json:"backchannel_authentication_endpoint"`
 	DeviceAuthorizationEndpoint        string `json:"device_authorization_endpoint"`
+	EndSessionEndpoint                 string `json:"end_session_endpoint"`
 	IntrospectionEndpoint              string `json:"introspection_endpoint"`
+	KerberosEndpoint                   string `json:"kerberos_endpoint"`
 	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint"`
 	RegistrationEndpoint               string `json:"registration_endpoint"`
 	RevocationEndpoint                 string `json:"revocation_endpoint"`
 	TokenEndpoint                      string `json:"token_endpoint"`
+	TokenRevocationEndpoint            string `json:"token_revocation_endpoint"`
 	UserinfoEndpoint                   string `json:"userinfo_endpoint"`
 }
 
-type Document struct {
+// OIDCDiscovery represents the discovered OIDC endpoints
+type OIDCDiscovery struct {
 	AcrValuesSupported                                        []string   `json:"acr_values_supported"`
 	AuthorizationEncryptionAlgValuesSupported                 []string   `json:"authorization_encryption_alg_values_supported"`
 	AuthorizationEncryptionEncValuesSupported                 []string   `json:"authorization_encryption_enc_values_supported"`
@@ -43,7 +58,7 @@ type Document struct {
 	IntrospectionEndpointAuthMethodsSupported                 []string   `json:"introspection_endpoint_auth_methods_supported"`
 	IntrospectionEndpointAuthSigningAlgValuesSupported        []string   `json:"introspection_endpoint_auth_signing_alg_values_supported"`
 	Issuer                                                    string     `json:"issuer"`
-	JwksURI                                                   string     `json:"jwks_uri"`
+	JWKSURI                                                   string     `json:"jwks_uri"`
 	KerberosEndpoint                                          string     `json:"kerberos_endpoint"`
 	MicrosoftGraphHost                                        string     `json:"msgraph_host"`
 	MtlsEndpointAliases                                       *Endpoints `json:"mtls_endpoint_aliases"`
@@ -74,6 +89,88 @@ type Document struct {
 	UserinfoEncryptionEncValuesSupported                      []string   `json:"userinfo_encryption_enc_values_supported"`
 	UserinfoEndpoint                                          string     `json:"userinfo_endpoint"`
 	UserinfoSigningAlgValuesSupported                         []string   `json:"userinfo_signing_alg_values_supported"`
-
-	RawData string
 }
+
+// GetOIDCDiscovery retrieves OIDC discovery endpoints from the given OpenID provider
+func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
+	document := OIDCDiscovery{}
+
+	if len(providerURL) <= 0 {
+		log("(oidc_discovery) [ERROR] providerURL empty: %s", providerURL)
+		return &document, errors.New("[ERROR] providerURL empty")
+	} else {
+		log("(oidc_discovery) [OK] providerURL valid: %s", providerURL)
+	}
+	requestUrl, err := url.Parse(providerURL)
+	if err != nil {
+		log("(oidc_discovery) [ERROR] parsing providerURL: %s", providerURL)
+		return &document, errors.New("[ERROR] parsing providerURL")
+	} else {
+		log("(oidc_discovery) [OK] Parsed providerURL: %s", providerURL)
+	}
+
+	requestUrl.Path = path.Join(requestUrl.Path, ".well-known/openid-configuration")
+	wellKnownURL := requestUrl.String()
+	if len(wellKnownURL) <= 0 {
+		log("(oidc_discovery) [ERROR] Creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
+		return &document, errors.New("[ERROR] Creating Discovery URL from providerURL")
+	} else {
+		log("(oidc_discovery) [OK] Creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
+	}
+
+	// create an http client with configurable options
+	// needed to skip certificate verification
+	tr := &http.Transport{
+		MaxIdleConns:    10,
+		IdleConnTimeout: 30 * time.Second,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	// Make HTTP GET request to the OpenID provider's discovery endpoint
+	resp, err := client.Get(wellKnownURL)
+	if err != nil {
+		log("(oidc_discovery) [ERROR] http-get discovery endpoints - Err: %s", err.Error())
+		return &document, errors.New("HTTP GET error")
+	} else {
+		log("(oidc_discovery) [OK] http-get discovery endpoints - URL: %s", wellKnownURL)
+	}
+	defer resp.Body.Close()
+
+	// Check if the response status code is successful (2xx)
+	if resp.StatusCode >= 300 {
+		log("(oidc_discovery) [ERROR] http-get (statuscode >= 300) OIDC discovery endpoints.")
+		return &document, errors.New("HTTP error - Status code: " + resp.Status)
+	} else {
+		log("(oidc_discovery) [OK] http-get (statuscode) discovery endpoints: %s", wellKnownURL)
+	}
+
+	// Decode the JSON response into the OIDCDiscovery struct
+	err = json.NewDecoder(resp.Body).Decode(&document)
+
+	if err != nil {
+		log("(oidc_discovery) [ERROR] json-decoding OIDC discovery endpoints. Status code: %s", err.Error())
+		return &document, errors.New("HTTP response: JSON decoding error")
+	} else {
+		log("(oidc_discovery) [OK] json-decoding OIDC discovery endpoints.")
+	}
+	return &document, nil
+}
+
+// func main() {
+// 	// Replace "https://your-openid-provider" with the actual URL of your OpenID provider
+// 	providerURL := "https://your-openid-provider"
+
+// 	// Call the GetOIDCDiscovery function to retrieve OIDC discovery endpoints
+// 	discovery, err := GetOIDCDiscovery(providerURL)
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return
+// 	}
+
+// 	// Print the discovered OIDC endpoints
+// 	fmt.Printf("Issuer: %s\n", discovery.Issuer)
+// 	fmt.Printf("Authorization Endpoint: %s\n", discovery.AuthorizationEndpoint)
+// 	fmt.Printf("Token Endpoint: %s\n", discovery.TokenEndpoint)
+// 	fmt.Printf("JWKS URI: %s\n", discovery.JWKSURI)
+// }

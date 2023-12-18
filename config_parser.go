@@ -8,15 +8,15 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
-	ProviderURL    string `json:"url"`
-	ClientID       string `json:"client_id"`
-	ClientSecret   string `json:"client_secret"`
-	UserClaimName  string `json:"user_claim_name"`
-	UserHeaderName string `json:"user_header_name"`
-
+	ProviderURL      string `json:"url"`
+	ClientID         string `json:"client_id"`
+	ClientSecret     string `json:"client_secret"`
+	UserClaimName    string `json:"user_claim_name"`
+	UserHeaderName   string `json:"user_header_name"`
 	ClientIDFile     string `json:"client_id_file"`
 	ClientSecretFile string `json:"client_secret_file"`
 	ProviderURLEnv   string `json:"url_env"`
@@ -27,6 +27,7 @@ type Config struct {
 type ProviderAuth struct {
 	next           http.Handler
 	ProviderURL    *url.URL
+	DiscoveryDoc   *OIDCDiscovery
 	ClientID       string
 	ClientSecret   string
 	UserClaimName  string
@@ -42,6 +43,15 @@ type ProviderTokenResponse struct {
 
 type state struct {
 	RedirectURL string `json:"redirect_url"`
+}
+
+// log is used for logging output, with a usage similar to Sprintf,
+// but it already includes a newline character at the end.
+func log(format string, a ...interface{}) {
+	// Get the current date and time, set format
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
+	// Write the formatted log line
+	os.Stdout.WriteString(currentTime + " [traefik-oidc-rp] " + fmt.Sprintf(format, a...) + "\n")
 }
 
 func CreateConfig() *Config {
@@ -115,6 +125,10 @@ func readConfigEnv(config *Config) error {
 }
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
+	log("(config_parser) [INFO] Config loaded. Len: %d ProviderURL: %v", len(config.ProviderURL), config.ProviderURL)
+	// log("(config_parser) [INFO] Sleeping a bit because Traefik's not ready...")
+	// time.Sleep(120 * time.Second)
+	// log("(config_parser) [INFO] Woke up.")
 	err := readSecretFiles(config)
 	if err != nil {
 		return nil, err
@@ -127,6 +141,14 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 	parsedURL, err := parseUrl(config.ProviderURL)
 	if err != nil {
 		return nil, err
+	}
+
+	discoverydoc, err := GetOIDCDiscovery(config.ProviderURL)
+	if err != nil {
+		log("(config_parser) [ERROR] retrieving Discovery Document: %s", err.Error())
+		return nil, err
+	} else {
+		log("(config_parser) [OK] OIDC Discovery Completed - AuthEndPoint: %s", discoverydoc.AuthorizationEndpoint)
 	}
 
 	userClaimName := "preferred_username"
@@ -142,6 +164,7 @@ func New(uctx context.Context, next http.Handler, config *Config, name string) (
 	return &ProviderAuth{
 		next:           next,
 		ProviderURL:    parsedURL,
+		DiscoveryDoc:   discoverydoc,
 		ClientID:       config.ClientID,
 		ClientSecret:   config.ClientSecret,
 		UserClaimName:  userClaimName,
