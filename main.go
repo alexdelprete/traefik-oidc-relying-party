@@ -56,21 +56,20 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	} else {
 		authCode := req.URL.Query().Get("code")
 		if authCode == "" {
-			log("(main) [OK] Code is missing, redirect to Provider")
+			log("(main) [WARN] Code is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
 		stateBase64 := req.URL.Query().Get("state")
 		if stateBase64 == "" {
-			log("(main) [OK] State is missing, redirect to Provider")
+			log("(main) [WARN] State is missing, redirect to Provider")
 			k.redirectToProvider(rw, req)
 			return
 		}
 
-		log("(main) exchange auth code called")
 		token, err := k.exchangeAuthCode(req, authCode, stateBase64)
-		log("(main) Exchange Auth Code completed: %+v", token)
+		log("(main) [INFO] Exchange Auth Code completed: %+v", token)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			log("(main) [ERROR] Exchange Auth Code: %s", err.Error())
@@ -96,7 +95,7 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		scheme := req.Header.Get("X-Forwarded-Proto")
 		host := req.Header.Get("X-Forwarded-Host")
 		originalURL := fmt.Sprintf("%s://%s%s", scheme, host, req.RequestURI)
-		log("(main) [OK] Redirect originalURL: %s", originalURL)
+		log("(main) [INFO] Redirect originalURL: %s", originalURL)
 
 		http.Redirect(rw, req, originalURL, http.StatusFound)
 	}
@@ -109,7 +108,7 @@ func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stat
 	if err != nil {
 		return "", err
 	}
-	log("(main) [OK] TokenEndPoint: %s", k.DiscoveryDoc.TokenEndpoint)
+	log("(main) [INFO] TokenEndPoint: %s", k.DiscoveryDoc.TokenEndpoint)
 
 	resp, err := http.PostForm(k.DiscoveryDoc.TokenEndpoint,
 		url.Values{
@@ -154,7 +153,7 @@ func (k *ProviderAuth) redirectToProvider(rw http.ResponseWriter, req *http.Requ
 	stateBytes, _ := json.Marshal(state)
 	stateBase64 := base64.StdEncoding.EncodeToString(stateBytes)
 
-	log("(main) [OK] AuthorizationEndPoint: %s", k.DiscoveryDoc.AuthorizationEndpoint)
+	log("(main) [INFO] AuthorizationEndPoint: %s", k.DiscoveryDoc.AuthorizationEndpoint)
 
 	redirectURL, err := url.Parse(k.DiscoveryDoc.AuthorizationEndpoint)
 	if err != nil {
@@ -179,7 +178,7 @@ func (k *ProviderAuth) verifyToken(token string) (bool, string, error) {
 		"token": {token},
 	}
 
-	log("(main) [OK] IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
+	log("(main) [INFO] IntrospectionEndpoint: %s", k.DiscoveryDoc.IntrospectionEndpoint)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -212,6 +211,6 @@ func (k *ProviderAuth) verifyToken(token string) (bool, string, error) {
 	} else {
 		log("(main) [OK] Response decoding OK - IntrospectResponse: %+v", introspectResponse)
 	}
-	log("(main) [OK] IntrospectResponse check return values - introspectResponse[active]: %s - introspectResponse[UserClaimName]: %s", introspectResponse["active"].(string), introspectResponse[k.UserClaimName])
+	log("(main) [INFO] IntrospectResponse check return values - introspectResponse[active]: %s - introspectResponse[UserClaimName]: %s", introspectResponse["active"].(string), introspectResponse[k.UserClaimName])
 	return introspectResponse["active"].(bool), introspectResponse[k.UserClaimName].(string), nil
 }

@@ -48,9 +48,9 @@ type state struct {
 // log is used for logging output, with a usage similar to Sprintf,
 // but it already includes a newline character at the end.
 func log(format string, a ...interface{}) {
-	// Get the current date and time
+	// Get the current date and time, set format
 	currentTime := time.Now().Format("2006-01-02 15:04:05")
-	// Print the current date and time with a custom format using fmt.Printf
+	// Write the formatted log line
 	os.Stdout.WriteString(currentTime + " [traefik-oidc-rp] " + fmt.Sprintf(format, a...) + "\n")
 }
 
@@ -125,7 +125,7 @@ func readConfigEnv(config *Config) error {
 }
 
 func New(uctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
-	log("(config_parser) [OK] Config loaded. Len: %d ProviderURL: %v", len(config.ProviderURL), config.ProviderURL)
+	log("(config_parser) [INFO] Config loaded. Len: %d ProviderURL: %v", len(config.ProviderURL), config.ProviderURL)
 	err := readSecretFiles(config)
 	if err != nil {
 		return nil, err

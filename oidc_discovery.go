@@ -109,28 +109,25 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 	requestUrl.Path = path.Join(requestUrl.Path, ".well-known/openid-configuration")
 	wellKnownURL := requestUrl.String()
 	if len(wellKnownURL) <= 0 {
-		log("(oidc_discovery) [ERROR] creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
+		log("(oidc_discovery) [ERROR] Creating Discovery URL from providerURL - wellKnownURL: %s - requestUrl: %s", wellKnownURL, requestUrl.String())
 		return &document, err
 	} else {
-		log("(oidc_discovery) [OK] creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
+		log("(oidc_discovery) [OK] Creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
 	}
 
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
 	resp, err := http.Get(wellKnownURL)
 	if err != nil {
-		log("(oidc_discovery) [INFO] before http-get discovery")
-		//log("(oidc_discovery) [ERROR] http-get discovery endpoints - StatusCode: %d - Err: %s", resp.StatusCode, err.Error())
-		log("(oidc_discovery) [INFO] before2 http-get discovery")
+		log("(oidc_discovery) [ERROR] http-get discovery endpoints - Err: %s", err.Error())
 		return &document, err
 	} else {
-		log("(oidc_discovery) [INFO] after http-get discovery")
 		log("(oidc_discovery) [OK] http-get discovery endpoints - URL: %s", wellKnownURL)
 	}
 	defer resp.Body.Close()
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("(oidc_discovery) [ERROR] http-get (statuscode) OIDC discovery endpoints. Status code: %d", resp.StatusCode)
+		log("(oidc_discovery) [ERROR] http-get (statuscode >= 300) OIDC discovery endpoints.")
 		return &document, err
 	} else {
 		log("(oidc_discovery) [OK] http-get (statuscode) discovery endpoints: %s", wellKnownURL)
