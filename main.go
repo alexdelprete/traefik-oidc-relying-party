@@ -212,6 +212,6 @@ func (k *ProviderAuth) verifyToken(token string) (bool, string, error) {
 	} else {
 		log("(main) [OK] Response decoding OK - IntrospectResponse: %+v", introspectResponse)
 	}
-	log("(main) [OK] IntrospectResponse check return values - introspectResponse[active]: %s - introspectResponse[UserClaimName]: %s", introspectResponse["active"], introspectResponse[k.UserClaimName])
+	log("(main) [OK] IntrospectResponse check return values - introspectResponse[active]: %s - introspectResponse[UserClaimName]: %s", introspectResponse["active"].(string), introspectResponse[k.UserClaimName])
 	return introspectResponse["active"].(bool), introspectResponse[k.UserClaimName].(string), nil
 }
