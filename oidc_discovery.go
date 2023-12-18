@@ -1,13 +1,11 @@
 package traefik_oidc_relying_party
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"path"
-	"time"
 )
 
 type Endpoints struct {
@@ -118,17 +116,17 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 		log("(oidc_discovery) [OK] Creating Discovery URL from providerURL: %s - wellKnownURL: %s", providerURL, wellKnownURL)
 	}
 
-	// create an http client with configurable options
-	// needed to skip certificate verification
-	tr := &http.Transport{
-		MaxIdleConns:    10,
-		IdleConnTimeout: 30 * time.Second,
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
+	// // create an http client with configurable options
+	// // needed to skip certificate verification
+	// tr := &http.Transport{
+	// 	MaxIdleConns:    10,
+	// 	IdleConnTimeout: 30 * time.Second,
+	// 	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	// }
+	// client := &http.Client{Transport: tr}
 
 	// Make HTTP GET request to the OpenID provider's discovery endpoint
-	resp, err := client.Get(wellKnownURL)
+	resp, err := http.Get(wellKnownURL)
 	if err != nil {
 		log("(oidc_discovery) [ERROR] http-get discovery endpoints - Err: %s", err.Error())
 		return &document, errors.New("HTTP GET error")
@@ -139,7 +137,7 @@ func GetOIDCDiscovery(providerURL string) (*OIDCDiscovery, error) {
 
 	// Check if the response status code is successful (2xx)
 	if resp.StatusCode >= 300 {
-		log("(oidc_discovery) [ERROR] http-get (statuscode >= 300) OIDC discovery endpoints.")
+		log("(oidc_discovery) [ERROR] http-get OIDC discovery endpoints - http status code: %s", resp.Status)
 		return &document, errors.New("HTTP error - Status code: " + resp.Status)
 	} else {
 		log("(oidc_discovery) [OK] http-get (statuscode) discovery endpoints: %s", wellKnownURL)
