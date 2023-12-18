@@ -44,13 +44,13 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			k.redirectToProvider(rw, req)
 			return
 		}
-		user, err := extractClaims(token, k.UserClaimName)
-		if err == nil {
-			req.Header.Set(k.UserHeaderName, user)
-			log("(main) Extracted claims: %s", k.UserClaimName)
-		} else {
-			log("(main) Error extracting claims: %s", err.Error())
-		}
+		// user, err := extractClaims(token, k.UserClaimName)
+		// if err == nil {
+		// 	req.Header.Set(k.UserHeaderName, user)
+		// 	log("(main) Extracted claims: %s", k.UserClaimName)
+		// } else {
+		// 	log("(main) Error extracting claims: %s", err.Error())
+		// }
 		k.next.ServeHTTP(rw, req)
 	} else {
 		authCode := req.URL.Query().Get("code")
@@ -101,26 +101,26 @@ func (k *ProviderAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func extractClaims(tokenString string, claimName string) (string, error) {
-	jwtContent := strings.Split(tokenString, ".")
-	if len(jwtContent) < 3 {
-		log("(main) JWT token malformed: Len (%d) Token (%+v) JWT (%+v)", len(jwtContent), tokenString, jwtContent)
-		return "", fmt.Errorf("malformed jwt")
-	}
+// func extractClaims(tokenString string, claimName string) (string, error) {
+// 	jwtContent := strings.Split(tokenString, ".")
+// 	if len(jwtContent) < 3 {
+// 		log("(main) JWT token malformed: Len (%d) Token (%+v) JWT (%+v)", len(jwtContent), tokenString, jwtContent)
+// 		return "", fmt.Errorf("malformed jwt")
+// 	}
 
-	var jwtClaims map[string]interface{}
-	decoder := base64.StdEncoding.WithPadding(base64.NoPadding)
+// 	var jwtClaims map[string]interface{}
+// 	decoder := base64.StdEncoding.WithPadding(base64.NoPadding)
 
-	jwt_bytes, _ := decoder.DecodeString(jwtContent[1])
-	if err := json.Unmarshal(jwt_bytes, &jwtClaims); err != nil {
-		return "", err
-	}
+// 	jwt_bytes, _ := decoder.DecodeString(jwtContent[1])
+// 	if err := json.Unmarshal(jwt_bytes, &jwtClaims); err != nil {
+// 		return "", err
+// 	}
 
-	if claimValue, ok := jwtClaims[claimName]; ok {
-		return fmt.Sprintf("%v", claimValue), nil
-	}
-	return "", fmt.Errorf("missing claim %s", claimName)
-}
+// 	if claimValue, ok := jwtClaims[claimName]; ok {
+// 		return fmt.Sprintf("%v", claimValue), nil
+// 	}
+// 	return "", fmt.Errorf("missing claim %s", claimName)
+// }
 
 func (k *ProviderAuth) exchangeAuthCode(req *http.Request, authCode string, stateBase64 string) (string, error) {
 	stateBytes, _ := base64.StdEncoding.DecodeString(stateBase64)
