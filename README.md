@@ -56,7 +56,7 @@ http:
     oidc-auth:
       plugin:
         traefik-oidc-relying-party:
-          KeycloakURL: "https://my-provider-url.com"
+          ProviderURL: "https://my-provider-url.com"
           ClientID: "<CLIENT_ID>"
           ClientSecret: "<CLIENT_SECRET>"
 ```
@@ -66,7 +66,7 @@ Alternatively, ClientID and ClientSecret can be read from a file to support Dock
 ```yaml
 http:
   middlewares:
-    my-keycloakopenid:
+    my-provider-openid:
       plugin:
         traefik-oidc-relying-party:
           ProviderURL: "https://my-provider-url.com/auth"
@@ -79,12 +79,12 @@ Last but not least, each configuration can be read from environment file to supp
 ```yaml
 http:
   middlewares:
-    my-keycloakopenid:
+    my-provider-openid:
       plugin:
-        keycloakopenid:
-          ProviderURLEnv: "MY_KEYCLOAK_URL"
-          ClientIDEnv: "MY_KEYCLOAK_CLIENT_ID"
-          ClientSecretEnv: "MY_KEYCLOAK_CLIENT_SECRET"
+        traefik-oidc-relying-party:
+          ProviderURLEnv: "MY_PROVIDER_URL"
+          ClientIDEnv: "MY_PROVIDER_CLIENT_ID"
+          ClientSecretEnv: "MY_PROVIDER_CLIENT_SECRET"
 ```
 
 This plugin also sets a header with a claim from the Provider, as it has become reasonably common. Claim name and header name can be modified.  
@@ -93,10 +93,10 @@ The default claim is <code>preferred_username</code>, the default header name is
 ```yaml
 http:
   middlewares:
-    my-keycloakopenid:
+    my-provider-openid:
       plugin:
-        keycloakopenid:
-          ProviderURL: "my-keycloak-url.com" # <- Also supports complete URL, e.g. https://my-keycloak-url.com/auth
+        traefik-oidc-relying-party:
+          ProviderURL: "my-provider-url.com" # <- Also supports complete URL, e.g. https://my-provider-url.com/auth
           ClientID: "<CLIENT_ID>"
           ClientSecret: "<CLIENT_SECRET>"
           UserClaimName: "my-uncommon-claim"
