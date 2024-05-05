@@ -87,8 +87,7 @@ http:
           ClientSecretEnv: "MY_PROVIDER_CLIENT_SECRET"
 ```
 
-This plugin also sets a header with a claim from the Provider, as it has become reasonably common. Claim name and header name can be modified.  
-The default claim is <code>preferred_username</code>, the default header name is <code>X-Forwarded-User</code> :
+This plugin also sets a header with a claim from the Provider, as it has become reasonably common. Claim name and header name can be modified. The default claim is <code>preferred_username</code>, the default header name is <code>X-Forwarded-User</code>:
 
 ```yaml
 http:
